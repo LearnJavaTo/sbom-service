@@ -35,4 +35,6 @@ public class SbomRepoConstants {
 
     public static final String OPEN_HARMONY_PURL_QUALIFIER_REVISION = "revision";
 
+    public static final String OPEN_HARMONY_THIRD_PARTY_PURL_PATTERN = "pkg:generic/%s@%s?download_url=%s";
+
 }

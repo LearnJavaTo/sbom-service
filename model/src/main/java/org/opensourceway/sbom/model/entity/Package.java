@@ -55,6 +55,12 @@ public class Package {
     private String supplier;
 
     /**
+     * Person or organization that originally created the package.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String originator;
+
+    /**
      * A more detailed description of the package as opposed to [summary], which may be an extract from the package.
      */
     @Column(columnDefinition = "TEXT")
@@ -191,6 +197,14 @@ public class Package {
 
     public void setSupplier(String supplier) {
         this.supplier = supplier;
+    }
+
+    public String getOriginator() {
+        return originator;
+    }
+
+    public void setOriginator(String originator) {
+        this.originator = originator;
     }
 
     public String getDescription() {

@@ -80,4 +80,9 @@ public interface SbomService {
     Graph queryVulImpact(String productName, String vulId);
 
     void addProduct(AddProductRequest req);
+
+    byte[] writePackageSbom(String productName, String pkgName, String pkgVersion,
+                            String spec, String specVersion, String format) throws IOException;
+
+    byte[] writeAllPackageSbom(String productName, String spec, String specVersion, String format) throws IOException;
 }

@@ -60,6 +60,7 @@ import org.opensourceway.sbom.model.spdx.ReferenceType;
 import org.opensourceway.sbom.model.spec.ExternalPurlRefCondition;
 import org.opensourceway.sbom.model.spec.ExternalPurlRefSpecs;
 import org.opensourceway.sbom.utils.EntityUtil;
+import org.opensourceway.sbom.utils.FileUtil;
 import org.opensourceway.sbom.utils.Mapper;
 import org.opensourceway.sbom.utils.PublishSbomRequestValidator;
 import org.opensourceway.sbom.utils.PurlUtil;
@@ -720,5 +721,55 @@ public class SbomServiceImpl implements SbomService {
         product.setName(req.getProductName());
         product.setAttribute(productAttribute);
         productRepository.save(product);
+    }
+
+    @Override
+    public byte[] writePackageSbom(String productName, String pkgName, String pkgVersion,
+                                   String spec, String specVersion, String format) throws IOException {
+        format = StringUtils.lowerCase(format);
+        spec = StringUtils.lowerCase(spec);
+
+        if (!SbomFormat.EXT_TO_FORMAT.containsKey(format)) {
+            throw new RuntimeException("sbom file format: %s is not support".formatted(format));
+        }
+
+        SbomSpecification sbomSpec = SbomSpecification.findSpecification(spec, specVersion);
+        if (!SbomSpecification.CYCLONEDX_1_4.equals(sbomSpec)) {
+            throw new RuntimeException("sbom file specification: %s - %s is not support".formatted(spec, specVersion));
+        }
+
+        SbomWriter sbomWriter = SbomApplicationContextHolder.getSbomWriter(sbomSpec.getSpecification());
+        return sbomWriter.writePackage(productName, pkgName, pkgVersion, SbomFormat.EXT_TO_FORMAT.get(format));
+    }
+
+    @Override
+    public byte[] writeAllPackageSbom(String productName, String originSpec, String specVersion, String originFormat)
+            throws IOException {
+        var format = StringUtils.lowerCase(originFormat);
+        var spec = StringUtils.lowerCase(originSpec);
+
+        if (!SbomFormat.EXT_TO_FORMAT.containsKey(format)) {
+            throw new RuntimeException("sbom file format: %s is not support".formatted(format));
+        }
+
+        SbomSpecification sbomSpec = SbomSpecification.findSpecification(spec, specVersion);
+        if (!SbomSpecification.CYCLONEDX_1_4.equals(sbomSpec)) {
+            throw new RuntimeException("sbom file specification: %s - %s is not support".formatted(spec, specVersion));
+        }
+
+        SbomWriter sbomWriter = SbomApplicationContextHolder.getSbomWriter(sbomSpec.getSpecification());
+        Sbom sbom = sbomRepository.findByProductName(productName)
+                .orElseThrow(() -> new RuntimeException("can't find %s's sbom metadata".formatted(productName)));
+        var nameToSbom = sbom.getPackages().stream().collect(Collectors.toMap(
+                pkg -> "%s-%s-%s-%s-sbom.%s".formatted(productName.replace("/", "_").replace("\\", "_"),
+                        pkg.getName(), pkg.getVersion(), spec, format),
+                pkg -> {
+                    try {
+                        return sbomWriter.writePackage(productName, pkg.getName(), pkg.getVersion(), SbomFormat.EXT_TO_FORMAT.get(format));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }));
+        return FileUtil.tarBytes(nameToSbom);
     }
 }

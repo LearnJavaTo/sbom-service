@@ -177,29 +177,36 @@ public class SupplySourceInfoProcessor implements ItemProcessor<List<UUID>, Supp
         }
 
         if (!ref.getPurl().getName().startsWith(SbomRepoConstants.OPEN_HARMONY_THIRD_PARTY_REPO_PREFIX)) {
+            pkg.setOriginator(pkg.getSupplier());
             return;
         }
 
         try {
-            var meta = openHarmonyThirdPartyUtil.getThirdPartyMeta(PurlUtil.canonicalizePurl(ref.getPurl()));
-            if (Objects.isNull(meta) || StringUtils.isBlank(meta.getUpstreamUrl().strip())) {
+            var metas = openHarmonyThirdPartyUtil.getThirdPartyMeta(PurlUtil.canonicalizePurl(ref.getPurl()));
+            if (ObjectUtils.isEmpty(metas)) {
                 return;
             }
 
-            ExternalPurlRef upstreamPurl = new ExternalPurlRef();
-            upstreamPurl.setCategory(ReferenceCategory.SOURCE_MANAGER.name());
-            upstreamPurl.setType(ReferenceType.URL.getType());
-            upstreamPurl.setPkg(pkg);
+            Optional.ofNullable(metas.get(0))
+                    .ifPresent(it -> pkg.setOriginator(SbomConstants.ORGANIZATION_PREFIX + it.getUpstreamUrl()));
+            metas.stream()
+                    .filter(meta -> Objects.nonNull(meta) && !StringUtils.isBlank(meta.getUpstreamUrl().strip()))
+                    .forEach(meta -> {
+                        ExternalPurlRef upstreamPurl = new ExternalPurlRef();
+                        upstreamPurl.setCategory(ReferenceCategory.SOURCE_MANAGER.name());
+                        upstreamPurl.setType(ReferenceType.URL.getType());
+                        upstreamPurl.setPkg(pkg);
 
-            PackageUrlVo vo = new PackageUrlVo();
-            vo.setType("upstream");
-            vo.setName(meta.getUpstreamUrl().strip());
-            upstreamPurl.setPurl(vo);
-            if (pkg.getExternalPurlRefs().contains(upstreamPurl)) {
-                logger.warn("upstreamPurl: {} already exists in package: {}", upstreamPurl.getPurl(), pkg.getId());
-                return;
-            }
-            pkg.getExternalPurlRefs().add(upstreamPurl);
+                        PackageUrlVo vo = new PackageUrlVo();
+                        vo.setType("upstream");
+                        vo.setName(meta.getUpstreamUrl().strip());
+                        upstreamPurl.setPurl(vo);
+                        if (pkg.getExternalPurlRefs().contains(upstreamPurl)) {
+                            logger.warn("upstreamPurl: {} already exists in package: {}", upstreamPurl.getPurl(), pkg.getId());
+                            return;
+                        }
+                        pkg.getExternalPurlRefs().add(upstreamPurl);
+                    });
         } catch (Exception e) {
             logger.error("supplyUpstream failed, purl: {}", ref.getPurl(), e);
             throw new RuntimeException(e);

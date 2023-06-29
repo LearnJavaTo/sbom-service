@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 
 import java.text.MessageFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Component
 public class OpenHarmonyThirdPartyUtil {
@@ -27,7 +29,7 @@ public class OpenHarmonyThirdPartyUtil {
     @Value("${gitee.domain.url}")
     private String giteeDomainUrl;
 
-    public ThirdPartyMetaVo getThirdPartyMeta(String purl) {
+    public List<ThirdPartyMetaVo> getThirdPartyMeta(String purl) {
         PackageURL packageURL = PurlUtil.newPackageURL(purl);
         if (!packageURL.getName().startsWith(SbomRepoConstants.OPEN_HARMONY_THIRD_PARTY_REPO_PREFIX)) {
             return null;
@@ -36,12 +38,12 @@ public class OpenHarmonyThirdPartyUtil {
         try {
             String thirdPartyMetaUrl = MessageFormat.format("{0}/{1}/{2}/raw/{3}/{4}",
                     giteeDomainUrl, SbomRepoConstants.OPEN_HARMONY_GITEE_ORG, packageURL.getName(),
-                    packageURL.getQualifiers().getOrDefault(SbomRepoConstants.OPEN_HARMONY_PURL_QUALIFIER_REVISION, packageURL.getVersion()),
+                    Optional.ofNullable(packageURL.getQualifiers()).orElse(Map.of())
+                            .getOrDefault(SbomRepoConstants.OPEN_HARMONY_PURL_QUALIFIER_REVISION, packageURL.getVersion()),
                     SbomRepoConstants.OPEN_HARMONY_THIRD_PARTY_META_FILE);
             String thirdPartyMeta = giteeApi.getFileContext(thirdPartyMetaUrl);
-            List<ThirdPartyMetaVo> vos = Mapper.jsonMapper.readValue(thirdPartyMeta, new TypeReference<>() {
+            return Mapper.jsonMapper.readValue(thirdPartyMeta, new TypeReference<>() {
             });
-            return vos.get(0);
         } catch (Exception e) {
             logger.warn("Unknown exception occurs when fetch repo meta for purl: {}", purl, e);
             return null;

@@ -19,6 +19,9 @@ public class Component {
     private Supplier supplier;
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private String author;
+
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private String group;
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -128,6 +131,14 @@ public class Component {
 
     public void setSupplier(Supplier supplier) {
         this.supplier = supplier;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
     }
 
     public String getDescription() {

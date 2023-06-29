@@ -1,13 +1,14 @@
 package org.opensourceway.sbom.batch.step;
 
 import com.github.packageurl.PackageURL;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.opensourceway.sbom.batch.utils.ExecutionContextUtils;
 import org.opensourceway.sbom.model.constants.BatchContextConstants;
 import org.opensourceway.sbom.model.constants.SbomRepoConstants;
 import org.opensourceway.sbom.model.spdx.ReferenceCategory;
+import org.opensourceway.sbom.model.spdx.ReferenceType;
 import org.opensourceway.sbom.model.spdx.SpdxDocument;
+import org.opensourceway.sbom.model.spdx.SpdxExternalReference;
 import org.opensourceway.sbom.model.spdx.SpdxPackage;
 import org.opensourceway.sbom.utils.OpenHarmonyThirdPartyUtil;
 import org.opensourceway.sbom.utils.PurlUtil;
@@ -19,6 +20,7 @@ import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.ObjectUtils;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -41,14 +43,14 @@ public class OpenHarmonySpecialTaskStep implements Tasklet {
         var sbomDocument = (SpdxDocument) jobContext.get(BatchContextConstants.BATCH_SBOM_DOCUMENT_KEY);
         Optional.ofNullable(sbomDocument)
                 .flatMap(it -> Optional.ofNullable(it.getPackages()))
-                .ifPresent(it -> it.stream().filter(Objects::nonNull).forEach(this::changeThirdPartyVersion));
+                .ifPresent(it -> it.stream().filter(Objects::nonNull).forEach(this::fulfillThirdPartyDependencies));
         jobContext.put(BatchContextConstants.BATCH_SBOM_DOCUMENT_KEY, sbomDocument);
 
         logger.info("finish OpenHarmonySpecialTaskStep rawSbomId: {}, productName: {}", rawSbomId, productName);
         return RepeatStatus.FINISHED;
     }
 
-    private void changeThirdPartyVersion(SpdxPackage pkg) {
+    private void fulfillThirdPartyDependencies(SpdxPackage pkg) {
         if (Objects.isNull(pkg.getExternalRefs())) {
             return;
         }
@@ -65,11 +67,19 @@ public class OpenHarmonySpecialTaskStep implements Tasklet {
             return;
         }
 
-        var meta = openHarmonyThirdPartyUtil.getThirdPartyMeta(ref.referenceLocator());
-        if (Objects.isNull(meta) || StringUtils.isBlank(meta.getVersion().strip())) {
+        var metas = openHarmonyThirdPartyUtil.getThirdPartyMeta(ref.referenceLocator());
+        if (ObjectUtils.isEmpty(metas)) {
             return;
         }
 
-        pkg.setVersionInfo(meta.getVersion().strip());
+        metas.stream().filter(Objects::nonNull).forEach(meta -> {
+            var thirdPartyPurl = SbomRepoConstants.OPEN_HARMONY_THIRD_PARTY_PURL_PATTERN.formatted(
+                    meta.getName().strip(), meta.getVersion().strip(), meta.getUpstreamUrl().strip());
+            var provide = new SpdxExternalReference(null, ReferenceCategory.PROVIDE_MANAGER,
+                    ReferenceType.PURL, thirdPartyPurl);
+            if (!pkg.getExternalRefs().contains(provide)) {
+                pkg.getExternalRefs().add(provide);
+            }
+        });
     }
 }

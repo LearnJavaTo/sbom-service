@@ -135,7 +135,7 @@ public class SbomController {
 
     @RequestMapping("/exportSbomFile")
     public void exportSbomFile(HttpServletRequest request, HttpServletResponse response, @RequestParam String productName, @RequestParam String spec,
-                               @RequestParam String specVersion, @RequestParam String format) throws IOException {
+            @RequestParam String specVersion, @RequestParam String format) throws IOException {
         logger.info("download original sbom file productName:{}, use spec:{}, specVersion:{}, format:{}",
                 productName,
                 spec,
@@ -194,7 +194,7 @@ public class SbomController {
 
     @RequestMapping("/exportSbom")
     public void exportSbom(HttpServletRequest request, HttpServletResponse response, @RequestParam String productName, @RequestParam String spec,
-                           @RequestParam String specVersion, @RequestParam String format) throws IOException {
+            @RequestParam String specVersion, @RequestParam String format) throws IOException {
         logger.info("download sbom metadata productName:{}, use spec:{}, specVersion:{}, format:{}",
                 productName,
                 spec,
@@ -252,15 +252,15 @@ public class SbomController {
     @Deprecated
     @PostMapping("/querySbomPackages")
     public @ResponseBody ResponseEntity querySbomPackagesDeprecated(@RequestParam("productName") String productName,
-                                                                    @RequestParam(value = "packageName", required = false) String packageName,
-                                                                    @RequestParam(value = "isExactly", required = false) Boolean isExactly,
-                                                                    @RequestParam(required = false) String vulSeverity,
-                                                                    @RequestParam(required = false) Boolean noLicense,
-                                                                    @RequestParam(required = false) Boolean multiLicense,
-                                                                    @RequestParam(required = false) Boolean isLegalLicense,
-                                                                    @RequestParam(required = false) String licenseId,
-                                                                    @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
-                                                                    @RequestParam(name = "size", required = false, defaultValue = "15") Integer size) {
+            @RequestParam(value = "packageName", required = false) String packageName,
+            @RequestParam(value = "isExactly", required = false) Boolean isExactly,
+            @RequestParam(required = false) String vulSeverity,
+            @RequestParam(required = false) Boolean noLicense,
+            @RequestParam(required = false) Boolean multiLicense,
+            @RequestParam(required = false) Boolean isLegalLicense,
+            @RequestParam(required = false) String licenseId,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false, defaultValue = "15") Integer size) {
         var req = new QuerySbomPackagesRequest();
         req.setProductName(productName);
         req.setPackageName(packageName);
@@ -284,8 +284,8 @@ public class SbomController {
 
     @GetMapping("/querySbomPackages/{productName}/{packageName}/{isExactly}")
     public @ResponseBody ResponseEntity getPackagesInfoByName(@PathVariable("productName") String productName,
-                                                              @PathVariable("packageName") String packageName,
-                                                              @PathVariable(value = "isExactly") boolean isExactly) {
+            @PathVariable("packageName") String packageName,
+            @PathVariable(value = "isExactly") boolean isExactly) {
         logger.info("query sbom packages by productName:{}, packageName:{}, isExactly:{}", productName, packageName, isExactly);
         List<PackageWithStatisticsVo> packagesList = sbomService.queryPackageInfoByName(productName, packageName, isExactly);
 
@@ -313,7 +313,7 @@ public class SbomController {
 
     @GetMapping("/queryPackageBinaryManagement/{packageId}/{binaryType}")
     public @ResponseBody ResponseEntity queryPackageBinaryManagement(@PathVariable("packageId") String packageId,
-                                                                     @PathVariable("binaryType") String binaryType) {
+            @PathVariable("binaryType") String binaryType) {
         logger.info("query package binary management by packageId:{}, binaryType:{}", packageId, binaryType);
 
         BinaryManagementVo result = sbomService.queryPackageBinaryManagement(packageId, binaryType);
@@ -325,15 +325,15 @@ public class SbomController {
 
     @PostMapping("/querySbomPackagesByBinary")
     public @ResponseBody ResponseEntity queryPackageInfoByBinary(@RequestParam("productName") String productName,
-                                                                 @RequestParam("binaryType") String binaryType,
-                                                                 @RequestParam("type") String type,
-                                                                 @RequestParam(name = "namespace", required = false) String namespace,
-                                                                 @RequestParam(name = "name") String name,
-                                                                 @RequestParam(name = "version", required = false) String version,
-                                                                 @RequestParam(required = false) String startVersion,
-                                                                 @RequestParam(required = false) String endVersion,
-                                                                 @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
-                                                                 @RequestParam(name = "size", required = false, defaultValue = "15") Integer size) {
+            @RequestParam("binaryType") String binaryType,
+            @RequestParam("type") String type,
+            @RequestParam(name = "namespace", required = false) String namespace,
+            @RequestParam(name = "name") String name,
+            @RequestParam(name = "version", required = false) String version,
+            @RequestParam(required = false) String startVersion,
+            @RequestParam(required = false) String endVersion,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false, defaultValue = "15") Integer size) {
         logger.info("query package info by productName:{}, binaryType:{}, type:{}, namespace:{}, name:{}, version:{}, " +
                         "startVersion:{}, endVersion: {}",
                 productName, binaryType, type, namespace, name, version, startVersion, endVersion);
@@ -397,7 +397,7 @@ public class SbomController {
 
     @PostMapping("/queryProduct/{productType}")
     public @ResponseBody ResponseEntity queryProductByFullAttributes(@PathVariable("productType") String productType,
-                                                                     @RequestBody Map<String, String> attributes) {
+            @RequestBody Map<String, String> attributes) {
         logger.info("query product info by productType:{}, attributes:{}", productType, attributes);
         attributes.put("productType", productType);
 
@@ -419,10 +419,10 @@ public class SbomController {
 
     @GetMapping("/queryPackageVulnerability/{packageId}")
     public @ResponseBody ResponseEntity queryVulnerabilityByPackageId(@PathVariable("packageId") String packageId,
-                                                                      @RequestParam(required = false) String severity,
-                                                                      @RequestParam(required = false) String vulId,
-                                                                      @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
-                                                                      @RequestParam(name = "size", required = false, defaultValue = "15") Integer size) {
+            @RequestParam(required = false) String severity,
+            @RequestParam(required = false) String vulId,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false, defaultValue = "15") Integer size) {
         logger.info("query package vulnerability by packageId: {}, severity: {}, vulId: {}", packageId, severity, vulId);
         PageVo<VulnerabilityVo> vulnerabilities;
         Pageable pageable = PageRequest.of(page, size);
@@ -440,11 +440,11 @@ public class SbomController {
     @GetMapping("/queryLicenseUniversalApi")
     public @ResponseBody
     ResponseEntity queryLicense(@RequestParam(name = "productName") String productName,
-                                @RequestParam(name = "license", required = false) String license,
-                                @RequestParam(name = "isLegal", required = false) Boolean isLegal,
-                                @RequestParam(name = "orderBy", required = false, defaultValue = "licenseId") String orderBy,
-                                @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
-                                @RequestParam(name = "size", required = false, defaultValue = "15") Integer size) throws Exception {
+            @RequestParam(name = "license", required = false) String license,
+            @RequestParam(name = "isLegal", required = false) Boolean isLegal,
+            @RequestParam(name = "orderBy", required = false, defaultValue = "licenseId") String orderBy,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false, defaultValue = "15") Integer size) throws Exception {
         logger.info("query package License for productName by universal api: {}", productName);
         PageVo<LicenseVo> licenses;
         Pageable pageable = "count".equals(orderBy) ?
@@ -515,8 +515,8 @@ public class SbomController {
 
     @GetMapping("/queryProductVulTrend/{*productName}")
     public @ResponseBody ResponseEntity queryProductVulTrendByProductNameAndTimeRange(@PathVariable String productName,
-                                                                                      @RequestParam(required = false, defaultValue = "0") Long startTimestamp,
-                                                                                      @RequestParam(required = false, defaultValue = "0") Long endTimestamp) {
+            @RequestParam(required = false, defaultValue = "0") Long startTimestamp,
+            @RequestParam(required = false, defaultValue = "0") Long endTimestamp) {
         productName = productName.substring(1);
         logger.info("query product vulnerability trend by product name: {}, time range: [{}, {}]", productName, startTimestamp, endTimestamp);
         List<VulCountVo> vulCountVos;
@@ -580,11 +580,11 @@ public class SbomController {
 
     @GetMapping("/queryVulnerability/{*productName}")
     public @ResponseBody ResponseEntity queryVulnerability(@PathVariable String productName,
-                                                           @RequestParam(required = false) String severity,
-                                                           @RequestParam(required = false) String packageId,
-                                                           @RequestParam(required = false) String vulId,
-                                                           @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
-                                                           @RequestParam(name = "size", required = false, defaultValue = "15") Integer size) {
+            @RequestParam(required = false) String severity,
+            @RequestParam(required = false) String packageId,
+            @RequestParam(required = false) String vulId,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false, defaultValue = "15") Integer size) {
         productName = productName.substring(1);
         logger.info("query vulnerability by product name: {}, severity: {}, packageId: {}, vulId: {}", productName, severity, packageId, vulId);
 
@@ -647,6 +647,110 @@ public class SbomController {
         } catch (Exception e) {
             logger.error("failed to add product.", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("failed to add product.");
+        }
+    }
+
+    @RequestMapping("/exportPackageSbom")
+    public void exportPackageSbom(HttpServletRequest request, HttpServletResponse response,
+            @RequestParam String productName, @RequestParam String packageName, @RequestParam String packageVersion,
+            @RequestParam String spec, @RequestParam String specVersion, @RequestParam String format)
+            throws IOException {
+        logger.info("download package sbom metadata productName: {}, packageName: {}, packageVersion: {}, " +
+                "use spec: {}, specVersion: {}, format: {}", productName, packageName, packageVersion, spec, specVersion, format);
+        byte[] sbom = null;
+        String errorMsg = null;
+
+        try {
+            sbom = sbomService.writePackageSbom(productName, packageName, packageVersion, spec, specVersion, format);
+        } catch (Exception e) {
+            logger.error("export package sbom metadata failed", e);
+            errorMsg = "export package sbom metadata failed";
+        }
+
+        response.reset();
+        if (ArrayUtils.isEmpty(sbom)) {
+            String returnContent = StringUtils.hasText(errorMsg) ? errorMsg :
+                    ("can't find sbom metadata, productName: %s, package: %s, version: %s, " +
+                            "use spec: %s, specVersion: %s, format: %s")
+                            .formatted(productName, packageName, packageVersion, spec, specVersion, format);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setContentType("text/plain");
+            response.addHeader("Content-Length", String.valueOf(returnContent.getBytes(StandardCharsets.UTF_8).length));
+
+            OutputStream outputStream = new BufferedOutputStream(response.getOutputStream());
+            outputStream.write(returnContent.getBytes(StandardCharsets.UTF_8));
+            outputStream.flush();
+        } else {
+            String fileName = "%s-%s-%s-%s-sbom.%s".formatted(productName, packageName, packageVersion, spec, format);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            response.setContentType("application/octet-stream");
+            response.setHeader("Content-Disposition", "attachment;filename=" +
+                    URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+            response.addHeader("Content-Length", String.valueOf(sbom.length));
+            //CORS
+            String origin = request.getHeader("origin");
+            if (SbomConstants.ALLOW_ORIGINS.contains(origin)) {
+                response.addHeader("Access-Control-Allow-Origin", origin);
+                response.addHeader("Access-Control-Allow-Methods", "POST");
+                response.addHeader("Access-Control-Allow-Headers", "Content-Type");
+                response.addHeader("Access-Control-Expose-Headers", "Content-Disposition");
+            }
+
+            OutputStream outputStream = new BufferedOutputStream(response.getOutputStream());
+            outputStream.write(sbom);
+            outputStream.flush();
+        }
+    }
+
+    @RequestMapping("/exportAllPackageSbom")
+    public void exportAllPackageSbom(HttpServletRequest request, HttpServletResponse response,
+            @RequestParam String productName, @RequestParam String spec, @RequestParam String specVersion,
+            @RequestParam String format) throws IOException {
+        logger.info("download all package sbom metadata, productName: {}, use spec: {}, specVersion: {}, format: {}",
+                productName, spec, specVersion, format);
+        byte[] allPkgSbom = null;
+        String errorMsg = null;
+
+        try {
+            allPkgSbom = sbomService.writeAllPackageSbom(productName, spec, specVersion, format);
+        } catch (Exception e) {
+            logger.error("export all package sbom metadata failed", e);
+            errorMsg = "export all package sbom metadata failed";
+        }
+
+        response.reset();
+        if (ArrayUtils.isEmpty(allPkgSbom)) {
+            String returnContent = StringUtils.hasText(errorMsg) ? errorMsg :
+                    ("can't find sbom metadata, productName: %s, use spec: %s, specVersion: %s, format: %s")
+                            .formatted(productName, spec, specVersion, format);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            response.setContentType("text/plain");
+            response.addHeader("Content-Length", String.valueOf(returnContent.getBytes(StandardCharsets.UTF_8).length));
+
+            OutputStream outputStream = new BufferedOutputStream(response.getOutputStream());
+            outputStream.write(returnContent.getBytes(StandardCharsets.UTF_8));
+            outputStream.flush();
+        } else {
+            String fileName = "%s-%s-sbom.tar.gz".formatted(productName, spec);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            response.setContentType("application/octet-stream");
+            response.setHeader("Content-Disposition", "attachment;filename=" +
+                    URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+            response.addHeader("Content-Length", String.valueOf(allPkgSbom.length));
+            //CORS
+            String origin = request.getHeader("origin");
+            if (SbomConstants.ALLOW_ORIGINS.contains(origin)) {
+                response.addHeader("Access-Control-Allow-Origin", origin);
+                response.addHeader("Access-Control-Allow-Methods", "POST");
+                response.addHeader("Access-Control-Allow-Headers", "Content-Type");
+                response.addHeader("Access-Control-Expose-Headers", "Content-Disposition");
+            }
+
+            OutputStream outputStream = new BufferedOutputStream(response.getOutputStream());
+            outputStream.write(allPkgSbom);
+            outputStream.flush();
         }
     }
 }

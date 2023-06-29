@@ -101,6 +101,7 @@ public class SpdxWriter implements SbomWriter {
         spdxPackage.setSourceInfo(pkg.getSourceInfo());
         spdxPackage.setSummary(pkg.getSummary());
         spdxPackage.setSupplier(pkg.getSupplier());
+        spdxPackage.setOriginator(pkg.getOriginator());
         spdxPackage.setVersionInfo(pkg.getVersion());
 
         return spdxPackage;
@@ -166,5 +167,10 @@ public class SpdxWriter implements SbomWriter {
                 file.getLicenseConcluded(),
                 file.getLicenseInfoInFiles() == null ? null : Arrays.asList(file.getLicenseInfoInFiles()),
                 null);
+    }
+
+    @Override
+    public byte[] writePackage(String productName, String pkgName, String pkgVersion, SbomFormat format) throws IOException {
+        throw new RuntimeException("Not implemented");
     }
 }

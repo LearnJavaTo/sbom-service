@@ -1,6 +1,7 @@
 package org.opensourceway.sbom.service.writer.impl.cyclonedx;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.opensourceway.sbom.api.writer.SbomWriter;
 import org.opensourceway.sbom.dao.SbomRepository;
 import org.opensourceway.sbom.model.constants.SbomConstants;
@@ -52,11 +53,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service(value = SbomConstants.CYCLONEDX_NAME + SbomConstants.WRITER_NAME)
 @Transactional(rollbackFor = Exception.class)
@@ -68,6 +72,9 @@ public class CycloneDXWriter implements SbomWriter {
     private static final String CYCLONEDX_VERSION = "1.4";
 
     private static final String SERIAL_NUMBER_PREFIX = "urn:uuid:";
+
+    /** urn:cdx:{serialNumber}/{bomVersion}#{bom-ref} */
+    private static final String REF_SERIAL_NUMBER_FORMAT = "urn:cdx:%s/%s#%s";
 
     private static final String RELATION_CATEGORY = "RelationCategory";
 
@@ -144,6 +151,8 @@ public class CycloneDXWriter implements SbomWriter {
         component.setCopyright(pkg.getCopyright());
 
         setComponentSupplier(pkg, component);
+        component.setAuthor(Optional.ofNullable(pkg.getOriginator())
+                .map(it -> it.replace(SbomConstants.ORGANIZATION_PREFIX, "").strip()).orElse(null));
         component.setDescription(pkg.getDescription());
         component.setProperties(new ArrayList<>(Collections.singletonList(new Property(SUMMARY, pkg.getSummary()))));
         setComponentHashes(pkg, component);
@@ -250,11 +259,20 @@ public class CycloneDXWriter implements SbomWriter {
     private void setComponentSupplier(Package pkg, Component component) {
         try {
             if (ObjectUtils.isNotEmpty(pkg.getSupplier())) {
-                Supplier supplier = new Supplier(null, pkg.getSupplier().split(":", 2)[1].strip());
+                var name = pkg.getSupplier().replace(SbomConstants.ORGANIZATION_PREFIX, "").strip();
+                Supplier supplier = isValidUrl(name) ? new Supplier(null, name) : new Supplier(name, null);
                 component.setSupplier(supplier);
             }
         } catch (Exception e) {
             logger.error("parse supplier error for package {}", pkg.getId());
+        }
+    }
+
+    private static boolean isValidUrl(String url) {
+        try {
+            return Objects.nonNull(new URI(url).getHost());
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -335,5 +353,58 @@ public class CycloneDXWriter implements SbomWriter {
                 VulnerabilitySeverity.valueOf(vulScore.getSeverity()),
                 VulnerabilityMethod.valueOf(vulScore.getScoringSystem()),
                 vulScore.getVector());
+    }
+
+    @Override
+    public byte[] writePackage(String productName, String pkgName, String pkgVersion, SbomFormat format) throws IOException {
+        Sbom sbom = sbomRepository.findByProductName(productName)
+                .orElseThrow(() -> new RuntimeException("can't find %s's sbom metadata".formatted(productName)));
+        var pkg = sbom.getPackages().stream()
+                .filter(it -> StringUtils.equals(pkgName, it.getName()) && StringUtils.equals(pkgVersion, it.getVersion()))
+                .findAny()
+                .orElseThrow(() -> new RuntimeException("can't find package <%s> with version <%s> in product <%s>"
+                        .formatted(pkgName, pkgVersion, productName)));
+        CycloneDXDocument document = new CycloneDXDocument(SERIAL_NUMBER_PREFIX + pkg.getId().toString());
+
+        document.setBomFormat(BOM_FORMAT);
+        document.setSpecVersion(CYCLONEDX_VERSION);
+        document.setVersion(VERSION);
+        setPackageMetadata(sbom, pkg, document);
+        setPackageDependencies(sbom, pkg, document);
+
+        return SbomMapperUtil.writeAsBytes(document, format);
+    }
+
+    private void setPackageMetadata(Sbom sbom, Package pkg, CycloneDXDocument document) {
+        Metadata metadata = new Metadata();
+        metadata.setTimestamp(sbom.getCreated());
+        setToolsAndManufacture(sbom, metadata);
+        metadata.setLicenses(List.of(new License(sbom.getDataLicense())));
+        metadata.setComponent(parsePackageMetadataComponent(sbom, pkg));
+        document.setMetadata(metadata);
+    }
+
+    private Component parsePackageMetadataComponent(Sbom sbom, Package pkg) {
+        return transformPackage(pkg, getPkgPatchMap(sbom));
+    }
+
+    private void setPackageDependencies(Sbom sbom, Package pkg, CycloneDXDocument document) {
+        List<Dependency> dependencies = new ArrayList<>();
+
+        sbom.getSbomElementRelationships().stream()
+                .filter(it -> StringUtils.equals(it.getElementId(), pkg.getSpdxId()))
+                .filter(it -> it.getRelationshipType().equals(RelationshipType.DEPENDS_ON.name()))
+                .forEach(it -> {
+                    var dependency = new Dependency();
+                    var refPkgId = sbom.getPackages().stream()
+                            .filter(p -> StringUtils.equals(p.getSpdxId(), it.getRelatedElementId()))
+                            .findAny()
+                            .map(Package::getId)
+                            .orElse(null);
+                    dependency.setRef(REF_SERIAL_NUMBER_FORMAT.formatted(refPkgId, VERSION, it.getRelatedElementId()));
+                    dependencies.add(dependency);
+                });
+
+        document.setDependencies(dependencies);
     }
 }
