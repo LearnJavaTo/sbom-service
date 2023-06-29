@@ -2,12 +2,16 @@ package org.opensourceway.sbom.utils;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
 import org.apache.commons.compress.utils.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,6 +20,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 
 public class FileUtil {
     private static final Logger logger = LoggerFactory.getLogger(FileUtil.class);
@@ -79,5 +84,23 @@ public class FileUtil {
 
     public static void ensureDirExists(File file) throws IOException {
         ensureDirExists(file.getCanonicalPath());
+    }
+
+    public static byte[] tarBytes(Map<String, byte[]> nameToData) throws IOException {
+        var baos = new ByteArrayOutputStream();
+        var bos = new BufferedOutputStream(baos);
+        var gos = new GzipCompressorOutputStream(bos);
+        var tar = new TarArchiveOutputStream(gos);
+        try (baos; bos; gos; tar) {
+            tar.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
+            for (Map.Entry<String, byte[]> e : nameToData.entrySet()) {
+                var entry = new TarArchiveEntry(e.getKey());
+                entry.setSize(e.getValue().length);
+                tar.putArchiveEntry(entry);
+                tar.write(e.getValue());
+                tar.closeArchiveEntry();
+            }
+        }
+        return baos.toByteArray();
     }
 }
