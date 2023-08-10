@@ -59,7 +59,10 @@ public class TestCommon {
         assertThat(pkg.getName()).isEqualTo("abseil-cpp");
         assertThat(pkg.getVersionInfo()).isEqualTo("20210324.2");
 
-        SpdxRelationship relationship = spdxDocument.getRelationships().get(0);
+        SpdxRelationship relationship = spdxDocument.getRelationships().stream()
+                .filter(it -> "SPDXRef-Package-PyPI-scipy-1.7.3".equals(it.spdxElementId()))
+                .findFirst().orElse(null);
+        assertThat(relationship).isNotNull();
         assertThat(relationship.spdxElementId()).isEqualTo("SPDXRef-Package-PyPI-scipy-1.7.3");
         assertThat(relationship.relationshipType().name()).isEqualTo(RelationshipType.DEPENDS_ON.name());
         assertThat(relationship.relatedSpdxElement()).isEqualTo("SPDXRef-Package-PyPI-numpy-1.21.6");

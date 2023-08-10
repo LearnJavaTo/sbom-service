@@ -34,7 +34,7 @@ public class UvpClientImpl implements UvpClient {
         WebClient client = webUtil.createWebClient(defaultBaseUrl);
 
         return client.post()
-                .uri("/uvp-api/queryBatch")
+                .uri("/uvp-api/queryBatchV2")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(coordinates)
                 .retrieve()

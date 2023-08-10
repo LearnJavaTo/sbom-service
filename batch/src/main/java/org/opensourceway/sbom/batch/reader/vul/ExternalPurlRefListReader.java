@@ -37,7 +37,7 @@ public class ExternalPurlRefListReader implements ItemReader<List<ExternalPurlRe
     private static final Logger logger = LoggerFactory.getLogger(ExternalPurlRefListReader.class);
 
     @Autowired
-    SbomRepository sbomRepository;
+    private SbomRepository sbomRepository;
 
     private List<List<ExternalPurlRef>> chunks;
 

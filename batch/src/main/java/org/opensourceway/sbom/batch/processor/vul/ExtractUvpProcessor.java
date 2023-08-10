@@ -1,7 +1,6 @@
 package org.opensourceway.sbom.batch.processor.vul;
 
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.opensourceway.sbom.api.vul.VulService;
 import org.opensourceway.sbom.model.constants.BatchContextConstants;
@@ -18,10 +17,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.lang.Nullable;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 
-public class ExtractUvpProcessor implements ItemProcessor<List<ExternalPurlRef>, Set<Pair<ExternalPurlRef, Object>>>, StepExecutionListener {
+public class ExtractUvpProcessor implements ItemProcessor<List<ExternalPurlRef>, Map<ExternalPurlRef, ?>>, StepExecutionListener {
     private static final Logger logger = LoggerFactory.getLogger(ExtractUvpProcessor.class);
 
     private StepExecution stepExecution;
@@ -40,7 +39,7 @@ public class ExtractUvpProcessor implements ItemProcessor<List<ExternalPurlRef>,
 
     @Nullable
     @Override
-    public Set<Pair<ExternalPurlRef, Object>> process(List<ExternalPurlRef> chunk) {
+    public Map<ExternalPurlRef, ?> process(List<ExternalPurlRef> chunk) {
         UUID sbomId = this.jobContext.containsKey(BatchContextConstants.BATCH_SBOM_ID_KEY) ?
                 (UUID) this.jobContext.get(BatchContextConstants.BATCH_SBOM_ID_KEY) : null;
         logger.info("start ExtractUvpProcessor sbomId:{}, chunk size:{}, first item id:{}",
@@ -48,8 +47,7 @@ public class ExtractUvpProcessor implements ItemProcessor<List<ExternalPurlRef>,
                 chunk.size(),
                 CollectionUtils.isEmpty(chunk) ? "" : chunk.get(0).getId().toString());
 
-        String productType = jobContext.getString(BatchContextConstants.BATCH_SBOM_PRODUCT_TYPE_KEY);
-        Set<Pair<ExternalPurlRef, Object>> resultSet = uvpService.extractVulForPurlRefChunk(sbomId, chunk, productType);
+        var resultSet = uvpService.extractVulForPurlRefChunk(sbomId, chunk);
 
         logger.info("finish ExtractUvpProcessor sbomId:{}, resultSet size:{}", sbomId, resultSet.size());
         return resultSet;

@@ -20,7 +20,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(indexes = {
-        @Index(name = "vul_score_uk", columnList = "scoring_system, score, vul_id", unique = true)
+        @Index(name = "vul_vector_uk", columnList = "scoring_system, vector, vul_id", unique = true)
 })
 public class VulScore {
     @Id

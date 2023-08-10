@@ -32,8 +32,8 @@ public class PurlUtil {
     }
 
     public static PackageURL newPackageURL(final String type, final String namespace, final String name,
-                                           final String version, final TreeMap<String, String> qualifiers,
-                                           final String subpath) {
+            final String version, final TreeMap<String, String> qualifiers,
+            final String subpath) {
         try {
             return new PackageURL(type, namespace, name, version, qualifiers, subpath);
         } catch (MalformedPackageURLException e) {
@@ -57,7 +57,7 @@ public class PurlUtil {
     }
 
     public static String canonicalizePurl(PackageUrlVo vo) {
-        return canonicalizePurl(PackageUrlVoToPackageURL(vo));
+        return canonicalizePurl(packageUrlVoToPackageURL(vo));
     }
 
     public static PackageUrlVo strToPackageUrlVo(String purlStr) {
@@ -67,13 +67,13 @@ public class PurlUtil {
                 packageURL.getSubpath());
     }
 
-    public static PackageURL PackageUrlVoToPackageURL(PackageUrlVo vo) {
+    public static PackageURL packageUrlVoToPackageURL(PackageUrlVo vo) {
         return PurlUtil.newPackageURL(vo.getType(), vo.getNamespace(), vo.getName(), vo.getVersion(),
                 vo.getQualifiers(), vo.getSubpath());
     }
 
     public static String convertPackageType(PackageUrlVo vo, String type) {
-        PackageURL packageURL = PackageUrlVoToPackageURL(vo);
+        PackageURL packageURL = packageUrlVoToPackageURL(vo);
         return canonicalizePurl(PurlUtil.newPackageURL(type, packageURL.getNamespace(), packageURL.getName(), packageURL.getVersion(),
                 (TreeMap<String, String>) packageURL.getQualifiers(), packageURL.getSubpath()));
     }
@@ -140,6 +140,12 @@ public class PurlUtil {
         } else {
             throw new RuntimeException("maven purl query condition params is error, type: %s, name: %s, version: %s".formatted(type, name, version));
         }
+    }
+
+    public static PackageURL convertPurlForVulnMatch(PackageURL purl) {
+        String version = StringUtils.equals(purl.getType(), PackageURL.StandardTypes.RPM) ?
+                purl.getVersion().split("-")[0] : purl.getVersion();
+        return newPackageURL(PackageURL.StandardTypes.GENERIC, null, purl.getName(), version, null, null);
     }
 
 }

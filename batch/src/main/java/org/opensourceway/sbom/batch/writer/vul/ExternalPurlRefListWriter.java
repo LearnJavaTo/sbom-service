@@ -1,6 +1,5 @@
 package org.opensourceway.sbom.batch.writer.vul;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.opensourceway.sbom.api.vul.VulService;
 import org.opensourceway.sbom.model.constants.BatchContextConstants;
@@ -17,10 +16,9 @@ import org.springframework.batch.item.ItemWriter;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
-public class ExternalPurlRefListWriter implements ItemWriter<Set<Pair<ExternalPurlRef, Object>>>, StepExecutionListener, ChunkListener {
+public class ExternalPurlRefListWriter implements ItemWriter<Map<ExternalPurlRef, ?>>, StepExecutionListener, ChunkListener {
 
     private static final Logger logger = LoggerFactory.getLogger(ExternalPurlRefListWriter.class);
 
@@ -39,13 +37,12 @@ public class ExternalPurlRefListWriter implements ItemWriter<Set<Pair<ExternalPu
     }
 
     @Override
-    public void write(List<? extends Set<Pair<ExternalPurlRef, Object>>> chunks) {
+    public void write(List<? extends Map<ExternalPurlRef, ?>> chunks) {
         UUID sbomId = this.jobContext.containsKey(BatchContextConstants.BATCH_SBOM_ID_KEY) ?
                 (UUID) this.jobContext.get(BatchContextConstants.BATCH_SBOM_ID_KEY) : null;
-        logger.info("start ExternalPurlRefListWriter service name:{}, sbomId:{}, chunk size:{}", getVulService().getClass().getSimpleName(), sbomId, chunks.size());
-        for (Set<Pair<ExternalPurlRef, Object>> externalVulRefSet : chunks) {
-            getVulService().persistExternalVulRefChunk(externalVulRefSet);
-        }
+        logger.info("start ExternalPurlRefListWriter service name:{}, sbomId:{}, chunk size:{}",
+                getVulService().getClass().getSimpleName(), sbomId, chunks.size());
+        chunks.forEach(chunk -> getVulService().persistExternalVulRefChunk(chunk));
         logger.info("finish ExternalPurlRefListWriter sbomId:{}", sbomId);
     }
 

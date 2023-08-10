@@ -1,10 +1,9 @@
 package org.opensourceway.sbom.api.vul;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.opensourceway.sbom.model.entity.ExternalPurlRef;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
 
 public interface VulService {
@@ -13,8 +12,7 @@ public interface VulService {
 
     boolean needRequest();
 
-    Set<Pair<ExternalPurlRef, Object>> extractVulForPurlRefChunk(UUID sbomId, List<ExternalPurlRef> externalPurlChunk,
-                                                                 String productType);
+    Map<ExternalPurlRef, ?> extractVulForPurlRefChunk(UUID sbomId, List<ExternalPurlRef> externalPurlChunk);
 
-    void persistExternalVulRefChunk(Set<Pair<ExternalPurlRef, Object>> externalVulRefSet);
+    void persistExternalVulRefChunk(Map<ExternalPurlRef, ?> externalVulRefMap);
 }

@@ -2,7 +2,6 @@ package org.opensourceway.sbom.service.vul.impl;
 
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensourceway.sbom.api.vul.UvpClient;
 import org.opensourceway.sbom.dao.ExternalVulRefRepository;
@@ -16,10 +15,9 @@ import org.opensourceway.sbom.model.entity.VulScore;
 import org.opensourceway.sbom.model.entity.Vulnerability;
 import org.opensourceway.sbom.model.enums.CvssSeverity;
 import org.opensourceway.sbom.model.enums.VulScoringSystem;
-import org.opensourceway.sbom.model.pojo.response.vul.uvp.Reference;
-import org.opensourceway.sbom.model.pojo.response.vul.uvp.Severity;
 import org.opensourceway.sbom.model.pojo.response.vul.uvp.UvpVulnerability;
 import org.opensourceway.sbom.model.pojo.response.vul.uvp.UvpVulnerabilityReport;
+import org.opensourceway.sbom.model.pojo.vo.sbom.PackageUrlVo;
 import org.opensourceway.sbom.model.spdx.ReferenceCategory;
 import org.opensourceway.sbom.service.vul.AbstractVulService;
 import org.opensourceway.sbom.utils.CvssUtil;
@@ -33,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,7 +49,7 @@ public class UvpServiceImpl extends AbstractVulService {
 
     private static final Logger logger = LoggerFactory.getLogger(UvpServiceImpl.class);
 
-    private static final Integer BULK_REQUEST_SIZE = 128;
+    private static final Integer BULK_REQUEST_SIZE = 16;
 
     @Autowired
     private UvpClient uvpClient;
@@ -74,14 +74,17 @@ public class UvpServiceImpl extends AbstractVulService {
     }
 
     @Override
-    public Set<Pair<ExternalPurlRef, Object>> extractVulForPurlRefChunk(UUID sbomId, List<ExternalPurlRef> externalPurlChunk, String productType) {
+    public Map<ExternalPurlRef, List<UvpVulnerability>> extractVulForPurlRefChunk(UUID sbomId, List<ExternalPurlRef> externalPurlChunk) {
         logger.info("Start to extract vulnerability from uvp for sbom {}, chunk size:{}", sbomId, externalPurlChunk.size());
-        Set<Pair<ExternalPurlRef, Object>> resultSet = new HashSet<>();
+        Map<ExternalPurlRef, List<UvpVulnerability>> externalPurlRefMap = new HashMap<>();
+        Map<ExternalPurlRef, Set<String>> externalPurlRefToVulIdMap = new HashMap<>();
 
         List<String> requestPurls = externalPurlChunk.stream()
-                .map(ref -> PurlUtil.canonicalizePurl(ref.getPurl()))
-                .collect(Collectors.toSet())
-                .stream().toList();
+                .map(ExternalPurlRef::getPurl)
+                .map(this::enrichPurlForVulnMatch)
+                .flatMap(List::stream)
+                .distinct()
+                .toList();
 
         ListUtils.partition(requestPurls, getBulkRequestSize()).forEach(requestPurlsChunk -> {
             try {
@@ -91,8 +94,18 @@ public class UvpServiceImpl extends AbstractVulService {
                 }
 
                 externalPurlChunk.forEach(purlRef -> Arrays.stream(response)
-                        .filter(vul -> StringUtils.equals(PurlUtil.canonicalizePurl(purlRef.getPurl()), vul.getPurl()))
-                        .forEach(vul -> resultSet.add(Pair.of(purlRef, vul))));
+                        .filter(vulReport -> enrichPurlForVulnMatch(purlRef.getPurl()).contains(vulReport.getPurl()))
+                        .filter(vulReport -> ObjectUtils.isNotEmpty(vulReport.getUvpVulnerabilities()))
+                        .forEach(vulReport -> vulReport.getUvpVulnerabilities().stream()
+                                .filter(vul -> Pattern.compile("^CVE-\\d+-\\d+$").matcher(vul.getId()).matches())
+                                .forEach(vul -> {
+                                    externalPurlRefMap.putIfAbsent(purlRef, new ArrayList<>());
+                                    externalPurlRefToVulIdMap.putIfAbsent(purlRef, new HashSet<>());
+                                    if (!externalPurlRefToVulIdMap.get(purlRef).contains(vul.getId())) {
+                                        externalPurlRefMap.get(purlRef).add(vul);
+                                        externalPurlRefToVulIdMap.get(purlRef).add(vul.getId());
+                                    }
+                                })));
             } catch (Exception e) {
                 logger.error("failed to extract vulnerabilities from uvp for sbom {}", sbomId);
                 reportVulFetchFailure(sbomId);
@@ -100,48 +113,57 @@ public class UvpServiceImpl extends AbstractVulService {
             }
         });
 
-        return resultSet;
+        return externalPurlRefMap;
     }
 
+    private List<String> enrichPurlForVulnMatch(PackageUrlVo vo) {
+        var purl = PurlUtil.packageUrlVoToPackageURL(vo);
+        return List.of(PurlUtil.canonicalizePurl(purl), PurlUtil.canonicalizePurl(PurlUtil.convertPurlForVulnMatch(purl)));
+    }
+
+    @SuppressWarnings("unchecked")
     @Override
-    public void persistExternalVulRefChunk(Set<Pair<ExternalPurlRef, Object>> externalVulRefSet) {
-        for (Pair<ExternalPurlRef, Object> externalVulRefPair : externalVulRefSet) {
-            UvpVulnerabilityReport vulReport = (UvpVulnerabilityReport) externalVulRefPair.getRight();
-            List<UvpVulnerability> uvpVulnerabilities = vulReport.getUvpVulnerabilities();
-            if (ObjectUtils.isEmpty(uvpVulnerabilities)) {
-                continue;
-            }
-            ExternalPurlRef purlRef = externalVulRefPair.getLeft();
-            persistExternalVulRef(purlRef, uvpVulnerabilities);
-        }
-    }
-
-    private void persistExternalVulRef(ExternalPurlRef purlRef, List<UvpVulnerability> uvpVulnerabilities) {
-        for (UvpVulnerability vul : uvpVulnerabilities) {
+    public void persistExternalVulRefChunk(Map<ExternalPurlRef, ?> externalVulRefMap) {
+        externalVulRefMap.forEach((purlRef, vuls) -> {
             Package purlOwnerPackage = packageRepository.findById(purlRef.getPkg().getId())
                     .orElseThrow(() -> new RuntimeException("package id: %s not found".formatted(purlRef.getPkg().getId())));
-
-            Vulnerability vulnerability = vulnerabilityRepository.saveAndFlush(persistVulnerability(vul));
-            Map<Pair<UUID, String>, ExternalVulRef> existExternalVulRefs = Optional.ofNullable(purlOwnerPackage.getExternalVulRefs())
+            Map<Pair<Vulnerability, String>, ExternalVulRef> existExternalVulRefs = Optional
+                    .ofNullable(purlOwnerPackage.getExternalVulRefs())
                     .orElse(new ArrayList<>())
                     .stream()
-                    .collect(Collectors.toMap(it ->
-                                    Pair.of(it.getVulnerability().getId(), PurlUtil.canonicalizePurl(it.getPurl())),
+                    .collect(Collectors.toMap(
+                            it -> Pair.of(it.getVulnerability(), PurlUtil.canonicalizePurl(it.getPurl())),
                             Function.identity()));
-            ExternalVulRef externalVulRef = existExternalVulRefs.getOrDefault(Pair.of(vulnerability.getId(), PurlUtil.canonicalizePurl(purlRef.getPurl())), new ExternalVulRef());
-            externalVulRef.setCategory(ReferenceCategory.SECURITY.name());
-            externalVulRef.setPurl(purlRef.getPurl());
-            externalVulRef.setVulnerability(vulnerability);
-            externalVulRef.setPkg(purlOwnerPackage);
-            externalVulRefRepository.saveAndFlush(externalVulRef);
-        }
+
+            var uvpVuls = ((List<UvpVulnerability>) vuls);
+            Map<String, Vulnerability> existVuls = vulnerabilityRepository
+                    .findByVulIds(uvpVuls.stream().map(UvpVulnerability::getId).toList())
+                    .stream()
+                    .collect(Collectors.toMap(Vulnerability::getVulId, Function.identity()));
+
+            uvpVuls.forEach(vul -> {
+                Vulnerability vulnerability = persistVulnerability(vul, existVuls);
+                existVuls.put(vul.getId(), vulnerability);
+
+                ExternalVulRef externalVulRef = existExternalVulRefs.getOrDefault(
+                        Pair.of(vulnerability, PurlUtil.canonicalizePurl(purlRef.getPurl())), new ExternalVulRef());
+                externalVulRef.setCategory(ReferenceCategory.SECURITY.name());
+                externalVulRef.setPurl(purlRef.getPurl());
+                externalVulRef.setVulnerability(vulnerability);
+                externalVulRef.setPkg(purlOwnerPackage);
+                existExternalVulRefs.put(
+                        Pair.of(vulnerability, PurlUtil.canonicalizePurl(purlRef.getPurl())), externalVulRef);
+            });
+
+            vulnerabilityRepository.saveAll(existVuls.values());
+            externalVulRefRepository.saveAll(existExternalVulRefs.values());
+        });
     }
 
-    private Vulnerability persistVulnerability(UvpVulnerability uvpVulnerability) {
-        Vulnerability vulnerability = vulnerabilityRepository.findByVulId(uvpVulnerability.getId()).orElse(new Vulnerability());
+    private Vulnerability persistVulnerability(UvpVulnerability uvpVulnerability, Map<String, Vulnerability> existVuls) {
+        Vulnerability vulnerability = existVuls.getOrDefault(uvpVulnerability.getId(), new Vulnerability());
         vulnerability.setVulId(uvpVulnerability.getId());
         List<VulReference> vulReferences = persistVulReferences(vulnerability, uvpVulnerability);
-        vulnerability.setAliases(uvpVulnerability.getAliases());
         vulnerability.setVulReferences(vulReferences);
         vulnerability.setDescription(uvpVulnerability.getDetails());
         List<VulScore> vulScores = persistVulScores(vulnerability, uvpVulnerability);
@@ -151,21 +173,26 @@ public class UvpServiceImpl extends AbstractVulService {
 
     private List<VulReference> persistVulReferences(Vulnerability vulnerability, UvpVulnerability uvpVulnerability) {
         List<VulReference> vulReferences = new ArrayList<>();
+        if (ObjectUtils.isEmpty(uvpVulnerability.getReferences())) {
+            return vulReferences;
+        }
 
         Map<Pair<String, String>, VulReference> existVulReferences = Optional.ofNullable(vulnerability.getVulReferences())
                 .orElse(new ArrayList<>())
                 .stream()
                 .collect(Collectors.toMap(it -> Pair.of(it.getSource(), it.getUrl()), Function.identity()));
 
-        for (Reference reference : uvpVulnerability.getReferences()) {
-            VulReference vulReference = existVulReferences.getOrDefault(
-                    Pair.of(reference.getType(), reference.getUrl()), new VulReference());
-            vulReference.setSource(reference.getType());
-            vulReference.setUrl(reference.getUrl());
-            vulReference.setVulnerability(vulnerability);
-            vulReferences.add(vulReference);
+        uvpVulnerability.getReferences().stream()
+                .distinct()
+                .forEach(reference -> {
+                    VulReference vulReference = existVulReferences.getOrDefault(
+                            Pair.of(reference.getType(), reference.getUrl()), new VulReference());
+                    vulReference.setSource(reference.getType());
+                    vulReference.setUrl(reference.getUrl());
+                    vulReference.setVulnerability(vulnerability);
+                    vulReferences.add(vulReference);
+                });
 
-        }
         return vulReferences;
     }
 
@@ -175,25 +202,25 @@ public class UvpServiceImpl extends AbstractVulService {
             return vulScores;
         }
 
-        Map<Pair<String, Double>, VulScore> existVulScores = Optional.ofNullable(vulnerability.getVulScores())
+        Map<Pair<String, String>, VulScore> existVulScores = Optional.ofNullable(vulnerability.getVulScores())
                 .orElse(new ArrayList<>())
                 .stream()
-                .collect(Collectors.toMap(it -> Pair.of(it.getScoringSystem(), it.getScore()), Function.identity()));
+                .collect(Collectors.toMap(it -> Pair.of(it.getScoringSystem(), it.getVector()), Function.identity()));
 
-        for (Severity severity : uvpVulnerability.getSeverities()) {
-            Double score;
-            String vector;
-            vector = severity.getScore();
-            score = CvssUtil.calculateScore(vector);
-            VulScoringSystem vulScoringSystem = VulScoringSystem.findVulScoringSystemByName(severity.getType());
-            VulScore vulScore = existVulScores.getOrDefault(Pair.of(vulScoringSystem.name(), score), new VulScore());
-            vulScore.setScoringSystem(vulScoringSystem.name());
-            vulScore.setScore(score);
-            vulScore.setVector(vector);
-            vulScore.setVulnerability(vulnerability);
-            vulScore.setSeverity(CvssSeverity.calculateCvssSeverity(vulScoringSystem, score).name());
-            vulScores.add(vulScore);
-        }
+        uvpVulnerability.getSeverities().stream()
+                .distinct()
+                .forEach(severity -> {
+                    String vector = severity.getScore();
+                    Double score = CvssUtil.calculateScore(vector);
+                    VulScoringSystem vulScoringSystem = VulScoringSystem.findVulScoringSystemByName(severity.getType());
+                    VulScore vulScore = existVulScores.getOrDefault(Pair.of(vulScoringSystem.name(), vector), new VulScore());
+                    vulScore.setScoringSystem(vulScoringSystem.name());
+                    vulScore.setScore(score);
+                    vulScore.setVector(vector);
+                    vulScore.setVulnerability(vulnerability);
+                    vulScore.setSeverity(CvssSeverity.calculateCvssSeverity(vulScoringSystem, score).name());
+                    vulScores.add(vulScore);
+                });
 
         return vulScores;
     }
