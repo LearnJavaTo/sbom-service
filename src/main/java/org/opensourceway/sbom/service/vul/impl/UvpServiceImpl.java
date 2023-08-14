@@ -180,14 +180,14 @@ public class UvpServiceImpl extends AbstractVulService {
         Map<Pair<String, String>, VulReference> existVulReferences = Optional.ofNullable(vulnerability.getVulReferences())
                 .orElse(new ArrayList<>())
                 .stream()
-                .collect(Collectors.toMap(it -> Pair.of(it.getSource(), it.getUrl()), Function.identity()));
+                .collect(Collectors.toMap(it -> Pair.of(it.getType(), it.getUrl()), Function.identity()));
 
         uvpVulnerability.getReferences().stream()
                 .distinct()
                 .forEach(reference -> {
                     VulReference vulReference = existVulReferences.getOrDefault(
                             Pair.of(reference.getType(), reference.getUrl()), new VulReference());
-                    vulReference.setSource(reference.getType());
+                    vulReference.setType(reference.getType());
                     vulReference.setUrl(reference.getUrl());
                     vulReference.setVulnerability(vulnerability);
                     vulReferences.add(vulReference);

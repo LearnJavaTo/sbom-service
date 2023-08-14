@@ -20,7 +20,7 @@ import java.util.UUID;
  */
 @Entity
 @Table(indexes = {
-        @Index(name = "vul_ref_uk", columnList = "source, url, vul_id", unique = true)
+        @Index(name = "vul_ref_uk", columnList = "type, url, vul_id", unique = true)
 })
 public class VulReference {
     @Id
@@ -29,10 +29,10 @@ public class VulReference {
     private UUID id;
 
     /**
-     * Reference source, e.g., NVD, snyk, github
+     * Reference type, e.g., ADVISORY, FIX, WEB
      */
     @Column(columnDefinition = "TEXT")
-    private String source;
+    private String type;
 
     /**
      * The URI pointing to detail of this vulnerability. This can also be used to derive the source of this information.
@@ -56,12 +56,12 @@ public class VulReference {
         this.id = id;
     }
 
-    public String getSource() {
-        return source;
+    public String getType() {
+        return type;
     }
 
-    public void setSource(String source) {
-        this.source = source;
+    public void setType(String type) {
+        this.type = type;
     }
 
     public String getUrl() {

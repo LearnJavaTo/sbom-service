@@ -33,7 +33,6 @@ import org.opensourceway.sbom.model.entity.VulScore;
 import org.opensourceway.sbom.model.entity.Vulnerability;
 import org.opensourceway.sbom.model.enums.CvssSeverity;
 import org.opensourceway.sbom.model.enums.SbomFileType;
-import org.opensourceway.sbom.model.enums.VulRefSource;
 import org.opensourceway.sbom.model.enums.VulScoringSystem;
 import org.opensourceway.sbom.model.pojo.vo.sbom.PackageUrlVo;
 import org.opensourceway.sbom.model.spdx.ReferenceCategory;
@@ -129,17 +128,17 @@ public class SbomDataInitTest {
 
         Vulnerability vul_2 = insertVulnerability("CVE-2022-00001-test");
         insertVulScore(vul_2, VulScoringSystem.CVSS_V2.name(), 9.8, "(AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H)");
-        insertVulRef(vul_2, VulRefSource.NVD.name(), "http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2022-00001-test");
+        insertVulRef(vul_2, "ADVISORY", "http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2022-00001-test");
 
         Vulnerability vul_1 = insertVulnerability("CVE-2022-00000-test");
         insertVulScore(vul_1, VulScoringSystem.CVSS_V3.name(), 5.3, "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N");
         insertVulScore(vul_1, VulScoringSystem.CVSS_V2.name(), 7.5, "AV:N/AC:L/Au:N/C:P/I:P/A:P");
-        insertVulRef(vul_1, VulRefSource.NVD.name(), "http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2022-00000-test");
-        insertVulRef(vul_1, VulRefSource.OSS_INDEX.name(), "https://ossindex.sonatype.org/vulnerability/sonatype-2022-00000-test");
+        insertVulRef(vul_1, "ADVISORY", "http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2022-00000-test");
+        insertVulRef(vul_1, "ADVISORY", "https://ossindex.sonatype.org/vulnerability/sonatype-2022-00000-test");
 
         Vulnerability vul_3 = insertVulnerability("CVE-2022-00002-test");
-        insertVulRef(vul_3, VulRefSource.NVD.name(), "http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2022-00002-test");
-        insertVulRef(vul_3, VulRefSource.GITHUB.name(), "https://github.com/xxx/xxx/security/advisories/xxx");
+        insertVulRef(vul_3, "ADVISORY", "http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2022-00002-test");
+        insertVulRef(vul_3, "ADVISORY", "https://github.com/xxx/xxx/security/advisories/xxx");
 
         Sbom sbom = sbomRepository.findByProductName(TestConstants.SAMPLE_PRODUCT_NAME).orElse(null);
         assertThat(sbom).isNotNull();
@@ -177,7 +176,7 @@ public class SbomDataInitTest {
 
     private void insertVulRef(Vulnerability vul, String source, String url) {
         VulReference vulReference = new VulReference();
-        vulReference.setSource(source);
+        vulReference.setType(source);
         vulReference.setUrl(url);
         vulReference.setVulnerability(vul);
         vulReferenceRepository.save(vulReference);

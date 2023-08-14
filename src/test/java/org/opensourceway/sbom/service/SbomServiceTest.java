@@ -616,9 +616,9 @@ class SbomServiceTest {
             assertThat(vo.getPurl()).isNull();
         }
         assertThat(vo.getReferences().size()).isEqualTo(2);
-        assertThat(vo.getReferences().get(0).getFirst()).isEqualTo("NVD");
+        assertThat(vo.getReferences().get(0).getFirst()).isEqualTo("ADVISORY");
         assertThat(vo.getReferences().get(0).getSecond()).isEqualTo("http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2022-00000-test");
-        assertThat(vo.getReferences().get(1).getFirst()).isEqualTo("OSS_INDEX");
+        assertThat(vo.getReferences().get(1).getFirst()).isEqualTo("ADVISORY");
         assertThat(vo.getReferences().get(1).getSecond()).isEqualTo("https://ossindex.sonatype.org/vulnerability/sonatype-2022-00000-test");
     }
 
@@ -638,7 +638,7 @@ class SbomServiceTest {
             assertThat(vo.getPurl()).isNull();
         }
         assertThat(vo.getReferences().size()).isEqualTo(1);
-        assertThat(vo.getReferences().get(0).getFirst()).isEqualTo("NVD");
+        assertThat(vo.getReferences().get(0).getFirst()).isEqualTo("ADVISORY");
         assertThat(vo.getReferences().get(0).getSecond()).isEqualTo("http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2022-00001-test");
     }
 
@@ -658,9 +658,9 @@ class SbomServiceTest {
             assertThat(vo.getPurl()).isNull();
         }
         assertThat(vo.getReferences().size()).isEqualTo(2);
-        assertThat(vo.getReferences().get(0).getFirst()).isEqualTo("NVD");
+        assertThat(vo.getReferences().get(0).getFirst()).isEqualTo("ADVISORY");
         assertThat(vo.getReferences().get(0).getSecond()).isEqualTo("http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2022-00002-test");
-        assertThat(vo.getReferences().get(1).getFirst()).isEqualTo("GITHUB");
+        assertThat(vo.getReferences().get(1).getFirst()).isEqualTo("ADVISORY");
         assertThat(vo.getReferences().get(1).getSecond()).isEqualTo("https://github.com/xxx/xxx/security/advisories/xxx");
     }
 

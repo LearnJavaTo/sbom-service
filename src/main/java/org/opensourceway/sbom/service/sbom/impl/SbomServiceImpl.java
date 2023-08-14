@@ -579,7 +579,7 @@ public class SbomServiceImpl implements SbomService {
         Vulnerability vulnerability = externalVulRef.getVulnerability();
         vo.setVulId(vulnerability.getVulId());
         VulnerabilityVo.inferAndSetScore(vo, vulnerability);
-        vo.setReferences(vulnerability.getVulReferences().stream().map(ref -> Pair.of(ref.getSource(), ref.getUrl())).toList());
+        vo.setReferences(vulnerability.getVulReferences().stream().map(ref -> Pair.of(ref.getType(), ref.getUrl())).toList());
         vo.setPurl(PurlUtil.canonicalizePurl(externalVulRef.getPurl()));
         return vo;
     }
