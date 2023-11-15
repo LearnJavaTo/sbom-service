@@ -1,4 +1,4 @@
-FROM openeuler/openeuler:22.03-lts@sha256:a96e504086acb8cd22d551d28252658e4440a4dae4bdecb3fed524deeb74ea75 AS build
+FROM openeuler/openeuler:22.03-lts@sha256:c331b6c3beb0c9701e63a05766cff478777cc183be79459ef69e610e69e0d6c6 AS build
 
 RUN yum update -y && yum install -y \
     git \
