@@ -61,7 +61,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-batch")
     testImplementation("commons-io:commons-io:$commonsIoVersion")
     testImplementation("org.postgresql:postgresql")
-    testImplementation("org.springframework:spring-context-support:5.3.27")
+    testImplementation("org.springframework:spring-context-support:6.1.0")
     testImplementation("com.fasterxml.jackson.core:jackson-databind")
     testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml")
     testImplementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml")

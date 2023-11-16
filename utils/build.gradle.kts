@@ -20,7 +20,7 @@ dependencies {
     implementation("org.yaml:snakeyaml")
     implementation("us.springett:cvss-calculator:$cvssCalculatorVersion")
 
-    api("com.google.guava:guava:31.1-jre")
+    api("com.google.guava:guava:32.1.3-jre")
 }
 
 tasks.getByName<Test>("test") {
