@@ -23,16 +23,16 @@ jobs:
 
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845 # v2.4.1
+      uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
       with:
         egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+    - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
       with:
           submodules: 'true'
     
     - name: Set up JDK 17
-      uses: actions/setup-java@5ffc13f4174014e2d4d4572b3d74c3fa61aeb2c2 # v3.11.0
+      uses: actions/setup-java@0ab4596768b603586c0de567f2430c30f5b0d2b0 # v3.13.0
       with:
         java-version: '17'
         distribution: 'corretto'
@@ -41,6 +41,6 @@ jobs:
       run: chmod +x ./gradlew
     
     - name: Build with Gradle
-      uses: gradle/gradle-build-action@ced6859e9c4c384100f94984814deb1bd361f648
+      uses: gradle/gradle-build-action@9bca466e2722baf9e77b4f929bbe0af18848791f
       with:
         arguments: -Dorg.gradle.jvmargs=-Xmx2g -Dkotlin.daemon.jvm.options="-Xmx1g" bootWar
